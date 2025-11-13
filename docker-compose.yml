@@ -1,0 +1,115 @@
+services:
+  # FastAPI server
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_PATH=${MODEL_PATH:-runs/latest/checkpoint.pt}
+      - MODEL_VERSION=${MODEL_VERSION:-v1.0}
+      - DEFAULT_BACKBONE=${DEFAULT_BACKBONE:-resnet50}
+      - API_KEY=${API_KEY}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MAX_UPLOAD_SIZE_MB=${MAX_UPLOAD_SIZE_MB:-10}
+      - BATCH_JOB_THRESHOLD=${BATCH_JOB_THRESHOLD:-16}
+    volumes:
+      - ./data:/app/data
+      - ./runs:/app/runs
+      - ./manifests:/app/manifests
+    depends_on:
+      - redis
+    networks:
+      - lados-network
+
+  # Celery worker
+  celery-worker:
+    build: .
+    command: celery -A src.tasks.celery_app worker --loglevel=info
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - MODEL_PATH=${MODEL_PATH:-runs/latest/checkpoint.pt}
+    volumes:
+      - ./data:/app/data
+      - ./runs:/app/runs
+      - ./configs:/app/configs
+    depends_on:
+      - redis
+    networks:
+      - lados-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - lados-network
+
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    networks:
+      - lados-network
+
+  # Kibana
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - lados-network
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana:/etc/grafana/provisioning
+    networks:
+      - lados-network
+
+  # Prometheus (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - lados-network
+
+volumes:
+  redis-data:
+  es-data:
+  grafana-data:
+  prometheus-data:
+
+networks:
+  lados-network:
+    driver: bridge
+
