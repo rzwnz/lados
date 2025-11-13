@@ -96,4 +96,3 @@ update_metrics_task = BashOperator(
 
 # Define task dependencies
 check_data_task >> trigger_training_task >> export_model_task >> update_metrics_task
-
