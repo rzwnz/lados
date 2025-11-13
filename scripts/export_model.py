@@ -49,7 +49,9 @@ def main():
     parser.add_argument("--backbone", type=str, default="resnet50", help="Model backbone")
     parser.add_argument("--num-classes", type=int, default=6, help="Number of classes")
     parser.add_argument("--img-size", type=int, default=224, help="Image size")
-    parser.add_argument("--formats", nargs="+", default=["torchscript", "onnx"], help="Export formats")
+    parser.add_argument(
+        "--formats", nargs="+", default=["torchscript", "onnx"], help="Export formats"
+    )
 
     args = parser.parse_args()
 
@@ -58,9 +60,7 @@ def main():
     class_names = checkpoint.get("class_names", [f"class_{i}" for i in range(args.num_classes)])
 
     # Create model
-    model = create_model(
-        backbone=args.backbone, num_classes=args.num_classes, pretrained=False
-    )
+    model = create_model(backbone=args.backbone, num_classes=args.num_classes, pretrained=False)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
@@ -78,4 +78,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

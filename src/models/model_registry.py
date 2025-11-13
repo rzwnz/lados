@@ -65,10 +65,7 @@ def create_model(
                     param.requires_grad = False
 
     else:
-        raise ValueError(
-            f"Unknown backbone: {backbone}. "
-            f"Available: {list_available_models()}"
-        )
+        raise ValueError(f"Unknown backbone: {backbone}. " f"Available: {list_available_models()}")
 
     return model
 
@@ -91,4 +88,3 @@ def unfreeze_last_n_layers(model: nn.Module, n: int = 2) -> None:
     # Unfreeze last n layers
     for name, param in params[-n:]:
         param.requires_grad = True
-

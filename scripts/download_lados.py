@@ -55,13 +55,13 @@ def download_from_roboflow(
     rf = Roboflow(api_key=api_key if api_key else None)
     try:
         project_obj = rf.workspace(workspace).project(project)
-        
+
         # If version is None, try to find available versions by testing common numbers
         if version is None:
             print("Version not specified, attempting to auto-detect available version...")
             versions_to_try = [2, 3, 4, 5, 1]  # Try higher versions first, then fallback to 1
             version = None
-            
+
             for v in versions_to_try:
                 try:
                     print(f"Testing version {v}...")
@@ -73,16 +73,18 @@ def download_from_roboflow(
                     break
                 except Exception:
                     continue
-            
+
             if version is None:
                 print("Could not auto-detect version, will try version 1...")
                 version = 1
-        
+
         print(f"Downloading from workspace: {workspace}, project: {project}, version: {version}")
-        
+
         # Try to download the specified version
         try:
-            dataset = project_obj.version(version).download("coco-segmentation", location=str(output_dir))
+            dataset = project_obj.version(version).download(
+                "coco-segmentation", location=str(output_dir)
+            )
         except Exception as ve:
             # If version doesn't exist, try to find available versions
             error_msg = str(ve).lower()
@@ -91,7 +93,7 @@ def download_from_roboflow(
                 versions_to_try = [2, 3, 4, 5, 1] if version == 1 else [1, 2, 3, 4, 5]
                 dataset = None
                 found_version = None
-                
+
                 for v in versions_to_try:
                     if v == version:
                         continue  # Skip the one we already tried
@@ -104,16 +106,18 @@ def download_from_roboflow(
                     except Exception as e:
                         print(f"  Version {v} failed: {str(e)[:100]}")
                         continue
-                
+
                 if dataset is None:
-                    print(f"\nError: Could not find any valid version after trying: {versions_to_try}")
+                    print(
+                        f"\nError: Could not find any valid version after trying: {versions_to_try}"
+                    )
                     print("Please check the Roboflow project page to see available versions:")
                     print(f"https://universe.roboflow.com/{workspace}/{project}")
                     raise ve
                 version = found_version
             else:
                 raise
-                
+
     except Exception as e:
         print(f"Error accessing Roboflow project: {e}")
         print(f"Workspace: {workspace}, Project: {project}, Attempted Version: {version}")
@@ -124,20 +128,20 @@ def download_from_roboflow(
     # Handle dataset path - Roboflow typically creates a directory like {project}-{version}
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Get dataset location - Roboflow might download to a different location than specified
     try:
         dataset_path = Path(dataset.location).resolve()
     except:
         # If dataset.location doesn't exist, try to find it
         dataset_path = None
-    
+
     final_path = output_dir / "lados"
 
     print(f"Dataset location reported by Roboflow: {dataset_path}")
     print(f"Output directory: {output_dir}")
     print(f"Target location: {final_path}")
-    
+
     # First, search for where Roboflow actually put the files
     # Roboflow often creates directories like: {project}-{version} or just downloads to current dir
     search_locations = [
@@ -149,11 +153,13 @@ def download_from_roboflow(
         Path.cwd() / f"{project}-{version}",
         Path.cwd() / project,
     ]
-    
+
     # Remove None values and duplicates
     search_locations = [loc for loc in search_locations if loc is not None]
-    search_locations = list(dict.fromkeys(search_locations))  # Remove duplicates while preserving order
-    
+    search_locations = list(
+        dict.fromkeys(search_locations)
+    )  # Remove duplicates while preserving order
+
     actual_dataset_path = None
     for search_loc in search_locations:
         if not search_loc.exists():
@@ -165,13 +171,15 @@ def download_from_roboflow(
             break
         # Also check for subdirectories
         for subdir in search_loc.iterdir():
-            if subdir.is_dir() and ((subdir / "train").exists() or (subdir / "train" / "images").exists()):
+            if subdir.is_dir() and (
+                (subdir / "train").exists() or (subdir / "train" / "images").exists()
+            ):
                 actual_dataset_path = subdir
                 print(f"✓ Found dataset at: {actual_dataset_path}")
                 break
         if actual_dataset_path:
             break
-    
+
     if not actual_dataset_path:
         print("Warning: Could not find dataset directory structure!")
         print("Searched in:")
@@ -185,8 +193,10 @@ def download_from_roboflow(
                     print(f"  - {item.name} ({'dir' if item.is_dir() else 'file'})")
             except:
                 pass
-        raise FileNotFoundError("Could not locate downloaded dataset. Check Roboflow download location.")
-    
+        raise FileNotFoundError(
+            "Could not locate downloaded dataset. Check Roboflow download location."
+        )
+
     # Now move the dataset to final_path if needed
     if actual_dataset_path.resolve() == final_path.resolve():
         print(f"✓ Dataset already at target location: {final_path}")
@@ -197,12 +207,12 @@ def download_from_roboflow(
         if temp_dir.exists():
             shutil.rmtree(temp_dir)
         temp_dir.mkdir()
-        
+
         # Move all dataset files/directories to temp (except lados if it exists)
         for item in output_dir.iterdir():
             if item.name != "lados":
                 shutil.move(str(item), str(temp_dir / item.name))
-        
+
         # Now move temp to final location
         if final_path.exists():
             shutil.rmtree(final_path)
@@ -220,9 +230,7 @@ def download_from_roboflow(
         print("Small sample mode: keeping first 200 images...")
         images_dir = final_path / "train" / "images"
         if images_dir.exists():
-            images = sorted(list(images_dir.glob("*.jpg")) + list(images_dir.glob("*.png")))[
-                :200
-            ]
+            images = sorted(list(images_dir.glob("*.jpg")) + list(images_dir.glob("*.png")))[:200]
             # Keep corresponding annotations
             for img in images_dir.glob("*"):
                 if img not in images:
@@ -231,9 +239,7 @@ def download_from_roboflow(
     return final_path
 
 
-def download_from_zenodo(
-    record_id: str, output_dir: Path, small_sample: bool = False
-) -> Path:
+def download_from_zenodo(record_id: str, output_dir: Path, small_sample: bool = False) -> Path:
     """Download LADOS dataset from Zenodo (fallback method)."""
     # This is a placeholder - actual Zenodo API integration would go here
     # For now, we'll document the expected structure
@@ -260,33 +266,29 @@ def convert_coco_to_classification(
     # COCO has: oils-emulsions, emulsion, oil, oil-platform, sheen, ship
     # We'll create distinct classes from these to have >3 classes
     class_names = [
-        "oil",              # Pure oil spills
-        "emulsion",         # Oil emulsions (different from pure oil)
-        "oil_platform",     # Oil platforms
-        "sheen",            # Oil sheen (thin film)
-        "ship",             # Ships
-        "background",       # No annotations / background
+        "oil",  # Pure oil spills
+        "emulsion",  # Oil emulsions (different from pure oil)
+        "oil_platform",  # Oil platforms
+        "sheen",  # Oil sheen (thin film)
+        "ship",  # Ships
+        "background",  # No annotations / background
     ]
     class_to_idx = {name: idx for idx, name in enumerate(class_names)}
 
     # Handle both "val" and "valid" naming conventions
-    split_mapping = {
-        "train": "train",
-        "val": "val",  # Try "val" first
-        "test": "test"
-    }
-    
+    split_mapping = {"train": "train", "val": "val", "test": "test"}  # Try "val" first
+
     for split_name, split_dir_name in split_mapping.items():
         # Try both "val" and "valid" for validation split
         if split_name == "val":
             possible_dirs = ["val", "valid"]
         else:
             possible_dirs = [split_dir_name]
-        
+
         ann_file = None
         images_dir = None
         found_split = None
-        
+
         for dir_name in possible_dirs:
             test_ann_file = coco_path / f"{dir_name}/_annotations.coco.json"
             # Images might be in {dir_name}/images or directly in {dir_name}/
@@ -303,11 +305,13 @@ def convert_coco_to_classification(
                 ann_file = test_ann_file
                 found_split = dir_name
                 break
-        
+
         if not ann_file or not ann_file.exists():
-            print(f"Warning: Annotation file for {split_name} not found (tried: {possible_dirs}), skipping {split_name}")
+            print(
+                f"Warning: Annotation file for {split_name} not found (tried: {possible_dirs}), skipping {split_name}"
+            )
             continue
-        
+
         print(f"Processing {split_name} from {found_split} directory...")
         print(f"  Annotation file: {ann_file}")
         print(f"  Images directory: {images_dir}")
@@ -315,7 +319,7 @@ def convert_coco_to_classification(
         coco = COCO(str(ann_file))
         # images_dir already set above
         output_split_dir = output_path / split_name  # Use split_name, not found_split
-        
+
         # Verify images_dir has image files
         image_files = list(images_dir.glob("*.jpg")) + list(images_dir.glob("*.png"))
         if not image_files:
@@ -354,7 +358,7 @@ def convert_coco_to_classification(
                     cat_id = max(set(cats), key=cats.count)
                     cat_info = coco.loadCats(cat_id)[0]
                     cat_name = cat_info["name"].lower().replace(" ", "_").replace("-", "_")
-                    
+
                     # Map COCO category names to our class names
                     # Preserve distinct classes: oil, emulsion, oil-platform, sheen, ship
                     category_mapping = {
@@ -377,7 +381,7 @@ def convert_coco_to_classification(
                         "land": "background",
                         "background": "background",
                     }
-                    
+
                     # Try direct match first, then mapping
                     if cat_name in class_to_idx:
                         dominant_class = cat_name
@@ -515,7 +519,9 @@ def main():
         print("1. Check if you need an API key: https://roboflow.com/")
         print("2. Verify the workspace and project names are correct")
         print("3. Try specifying a different version: --version 2 (or 3, 4, etc.)")
-        print("4. Check the dataset URL: https://universe.roboflow.com/konstantinos-gkountakos/lados")
+        print(
+            "4. Check the dataset URL: https://universe.roboflow.com/konstantinos-gkountakos/lados"
+        )
         print("\nFalling back to manual download instructions...")
         print(
             "Please download LADOS manually from: "
@@ -540,4 +546,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

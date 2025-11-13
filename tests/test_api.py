@@ -42,4 +42,3 @@ def test_metrics_endpoint():
     data = response.json()
     assert "training_metrics" in data
     assert "inference_stats" in data
-

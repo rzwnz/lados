@@ -39,9 +39,7 @@ def test_dataset_loading(dummy_dataset):
 
 def test_dataset_getitem(dummy_dataset):
     """Test dataset __getitem__."""
-    dataset = LadosImageDataset(
-        root=dummy_dataset, split="train", transform=get_val_transforms()
-    )
+    dataset = LadosImageDataset(root=dummy_dataset, split="train", transform=get_val_transforms())
     image, label = dataset[0]
     assert isinstance(image, torch.Tensor)
     assert image.shape == (3, 224, 224)
@@ -61,4 +59,3 @@ def test_transforms():
 
     assert train_tensor.shape == (3, 224, 224)
     assert val_tensor.shape == (3, 224, 224)
-

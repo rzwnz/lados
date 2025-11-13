@@ -81,9 +81,7 @@ def find_optimal_batch_size(
     for batch_size in [max_batch_size, 16, 8, min_batch_size]:
         try:
             # Create a small dummy batch
-            dummy_loader = DataLoader(
-                dataset, batch_size=batch_size, shuffle=False, num_workers=0
-            )
+            dummy_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
             sample_batch, _ = next(iter(dummy_loader))
             sample_batch = sample_batch.to(device)
 
@@ -185,9 +183,7 @@ def validate(
 
 def main():
     parser = argparse.ArgumentParser(description="Train LADOS classification model")
-    parser.add_argument(
-        "--config", type=Path, required=True, help="Path to YAML config file"
-    )
+    parser.add_argument("--config", type=Path, required=True, help="Path to YAML config file")
     parser.add_argument("--dry-run", action="store_true", help="Run one batch only")
     args = parser.parse_args()
 
@@ -227,7 +223,7 @@ def main():
 
     class_names = train_dataset.classes
     num_classes = len(class_names)
-    
+
     print(f"Dataset classes: {class_names}")
     print(f"Number of classes: {num_classes}")
 
@@ -235,7 +231,7 @@ def main():
     if config.get("small_sample", {}).get("enabled", False):
         max_samples = config["small_sample"]["max_samples"]
         train_dataset.samples = train_dataset.samples[:max_samples]
-        val_dataset.samples = val_dataset.samples[:max_samples // 4]
+        val_dataset.samples = val_dataset.samples[: max_samples // 4]
 
     # Create model - use actual number of classes from dataset
     model = create_model(
@@ -292,9 +288,7 @@ def main():
         warmup_epochs = config["training"].get("warmup_epochs", 5)
         warmup_steps = len(train_loader) * warmup_epochs
 
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=total_steps - warmup_steps
-    )
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=total_steps - warmup_steps)
 
     # Mixed precision
     use_amp = config["training"]["mixed_precision"] and use_gpu
@@ -410,9 +404,7 @@ def main():
             val_preds.extend(outputs.argmax(dim=1).cpu().numpy())
             val_labels.extend(labels.cpu().numpy())
 
-    plot_confusion_matrix(
-        val_labels, val_preds, class_names, run_dir / "confusion_matrix.png"
-    )
+    plot_confusion_matrix(val_labels, val_preds, class_names, run_dir / "confusion_matrix.png")
 
     print(f"\nTraining complete! Results saved to: {run_dir}")
     print(f"Best val_macro_f1: {best_val_f1:.4f} at epoch {best_epoch}")
@@ -420,4 +412,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

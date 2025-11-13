@@ -65,9 +65,7 @@ class LadosImageDataset(Dataset):
                 if not class_dir.is_dir():
                     continue
                 class_name = class_dir.name
-                for img_path in sorted(class_dir.glob("*.jpg")) + sorted(
-                    class_dir.glob("*.png")
-                ):
+                for img_path in sorted(class_dir.glob("*.jpg")) + sorted(class_dir.glob("*.png")):
                     self.samples.append((img_path, class_name))
 
         # Create class to index mapping
@@ -112,9 +110,5 @@ class LadosImageDataset(Dataset):
 
         class_counts = Counter(label for _, label in self.samples)
         total = len(self.samples)
-        weights = {
-            cls: total / (len(self.classes) * count)
-            for cls, count in class_counts.items()
-        }
+        weights = {cls: total / (len(self.classes) * count) for cls, count in class_counts.items()}
         return weights
-

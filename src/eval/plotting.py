@@ -111,4 +111,3 @@ def save_metrics_json(metrics: Dict, output_path: Path) -> None:
     with open(output_path, "w") as f:
         json.dump(metrics, f, indent=2)
     print(f"Saved metrics to: {output_path}")
-

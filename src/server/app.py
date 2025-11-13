@@ -65,7 +65,7 @@ def load_model(model_path: str, backbone: str = "resnet50", num_classes: int = 6
 
     checkpoint = torch.load(checkpoint_path, map_location=device)
     class_names = checkpoint.get("class_names", [f"class_{i}" for i in range(num_classes)])
-    
+
     # Use actual number of classes from checkpoint
     actual_num_classes = len(class_names) if class_names else num_classes
     # Also check the checkpoint state dict to determine num_classes
@@ -281,15 +281,18 @@ async def get_metrics():
 
     # Get Prometheus metrics
     from prometheus_client import REGISTRY
+
     total_requests = 0
     avg_latency_ms = 0.0
-    
+
     # Try to get metrics from registry
     for collector in REGISTRY._collector_to_names:
-        if hasattr(collector, '_value'):
-            if 'inference_requests_total' in str(collector):
-                total_requests = int(collector._value.get() if hasattr(collector._value, 'get') else 0)
-    
+        if hasattr(collector, "_value"):
+            if "inference_requests_total" in str(collector):
+                total_requests = int(
+                    collector._value.get() if hasattr(collector._value, "get") else 0
+                )
+
     return MetricsResponse(
         training_metrics=metrics.get("final_metrics"),
         inference_stats={
@@ -316,4 +319,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
-

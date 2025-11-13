@@ -115,7 +115,8 @@ def task_infer_batch(self, job_id: str, image_paths: List[str]) -> Dict:
             # Update progress
             progress = int((idx + 1) / total * 100)
             self.update_state(
-                state="PROGRESS", meta={"progress": progress, "message": f"Processed {idx+1}/{total}"}
+                state="PROGRESS",
+                meta={"progress": progress, "message": f"Processed {idx+1}/{total}"},
             )
         except Exception as e:
             results.append({"filename": Path(img_path).name, "error": str(e)})
@@ -179,4 +180,3 @@ def task_export_artifact(
             "status": "failed",
             "message": str(e),
         }
-

@@ -109,4 +109,3 @@ def compute_metrics_from_tensor(
     y_true_np = y_true.cpu().numpy()
     y_pred_np = y_pred.argmax(dim=1).cpu().numpy() if y_pred.dim() > 1 else y_pred.cpu().numpy()
     return compute_metrics(y_true_np, y_pred_np, class_names)
-

@@ -41,4 +41,3 @@ def test_one_batch_training():
     optimizer.step()
 
     assert loss.item() > 0
-
